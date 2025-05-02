@@ -4,17 +4,18 @@ import { toast } from '@/components/ui/use-toast';
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  userType: 'student' | 'admin' | null;
+  userType: 'student_teacher' | 'admin' | null;
   login: (email: string, password: string, userType: string, adminCode?: string) => Promise<boolean>;
   logout: () => void;
   register: (email: string, password: string, name: string, userType: string, adminCode?: string, idNumber?: string) => Promise<boolean>;
   resetPassword: (email: string) => Promise<boolean>;
+  isAdmin: () => boolean;
 }
 
 interface User {
   email: string;
   name: string;
-  userType: 'student' | 'admin';
+  userType: 'student_teacher' | 'admin';
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,9 +36,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
     localStorage.getItem('isAuthenticated') === 'true'
   );
-  const [userType, setUserType] = useState<'student' | 'admin' | null>(
-    localStorage.getItem('userType') as 'student' | 'admin' | null
+  const [userType, setUserType] = useState<'student_teacher' | 'admin' | null>(
+    localStorage.getItem('userType') as 'student_teacher' | 'admin' | null
   );
+
+  const isAdmin = () => {
+    return userType === 'admin';
+  };
 
   const login = async (email: string, password: string, userType: string, adminCode?: string): Promise<boolean> => {
     // Vérification du code administrateur si type = admin
@@ -52,13 +57,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     // Simulation d'une vérification d'authentification
     if (email === 'test@gmail.com' && password === 'test') {
+      const userTypeValue = userType === 'admin' ? 'admin' : 'student_teacher';
       setIsAuthenticated(true);
-      setUserType(userType as 'student' | 'admin');
+      setUserType(userTypeValue);
       localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('userType', userType);
+      localStorage.setItem('userType', userTypeValue);
       toast({
         title: 'Connexion réussie',
-        description: `Bienvenue sur la plateforme d'emploi du temps (${userType === 'admin' ? 'Administrateur' : 'Étudiant'})`,
+        description: `Bienvenue sur la plateforme d'emploi du temps (${userType === 'admin' ? 'Administrateur' : 'Étudiant/Enseignant'})`,
       });
       return true;
     }
@@ -134,7 +140,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       login, 
       logout, 
       register, 
-      resetPassword 
+      resetPassword,
+      isAdmin
     }}>
       {children}
     </AuthContext.Provider>
