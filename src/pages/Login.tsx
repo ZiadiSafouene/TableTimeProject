@@ -1,15 +1,17 @@
+
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, Key } from 'lucide-react';
+import { Mail, Key, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [userType, setUserType] = useState<'student_teacher' | 'admin'>('student_teacher');
   const [adminCode, setAdminCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -41,89 +43,104 @@ const Login = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <form onSubmit={handleSubmit}>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-gray-400">
-                    <Mail size={18} />
-                  </span>
-                  <Input
-                    id="email"
-                    placeholder="exemple@universite.fr"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Mot de passe</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-gray-400">
-                    <Key size={18} />
-                  </span>
-                  <Input
-                    id="password"
-                    placeholder="Mot de passe"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="userType">Type de compte</Label>
-                <div className="flex gap-4">
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      id="student_teacher"
-                      name="userType"
-                      className="mr-2"
-                      checked={userType === "student_teacher"}
-                      onChange={() => setUserType("student_teacher")}
-                    />
-                    <Label htmlFor="student_teacher" className="cursor-pointer">Étudiant/Enseignant</Label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      id="admin"
-                      name="userType"
-                      className="mr-2"
-                      checked={userType === "admin"}
-                      onChange={() => setUserType("admin")}
-                    />
-                    <Label htmlFor="admin" className="cursor-pointer">Administrateur</Label>
-                  </div>
-                </div>
-              </div>
-
-              {userType === "admin" && (
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="adminCode">Code Administrateur</Label>
+                  <Label htmlFor="email">Email</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-gray-400">
+                      <Mail size={18} />
+                    </span>
+                    <Input
+                      id="email"
+                      placeholder="exemple@universite.fr"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">Mot de passe</Label>
                   <div className="relative">
                     <span className="absolute left-3 top-2.5 text-gray-400">
                       <Key size={18} />
                     </span>
                     <Input
-                      id="adminCode"
-                      placeholder="Code administrateur"
-                      type="password"
-                      value={adminCode}
-                      onChange={(e) => setAdminCode(e.target.value)}
-                      className="pl-10"
+                      id="password"
+                      placeholder="Mot de passe"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pl-10 pr-10"
+                      required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 focus:outline-none"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
                   </div>
                 </div>
-              )}
-              <Button type="submit" className="w-full bg-blue-700 hover:bg-blue-800" disabled={isLoading}>
-                {isLoading ? 'Connexion...' : 'Se connecter'}
-              </Button>
+
+                {userType === "admin" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="adminCode">Code Administrateur</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-gray-400">
+                        <Key size={18} />
+                      </span>
+                      <Input
+                        id="adminCode"
+                        placeholder="Code administrateur"
+                        type={showPassword ? "text" : "password"}
+                        value={adminCode}
+                        onChange={(e) => setAdminCode(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="userType">Type de compte</Label>
+                  <div className="flex gap-4">
+                    <div className="flex items-center">
+                      <input
+                        type="radio"
+                        id="student_teacher"
+                        name="userType"
+                        className="mr-2"
+                        checked={userType === "student_teacher"}
+                        onChange={() => setUserType("student_teacher")}
+                      />
+                      <Label htmlFor="student_teacher" className="cursor-pointer">Étudiant/Enseignant</Label>
+                    </div>
+                    <div className="flex items-center">
+                      <input
+                        type="radio"
+                        id="admin"
+                        name="userType"
+                        className="mr-2"
+                        checked={userType === "admin"}
+                        onChange={() => setUserType("admin")}
+                      />
+                      <Label htmlFor="admin" className="cursor-pointer">Administrateur</Label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <Button type="submit" className="w-full bg-blue-700 hover:bg-blue-800" disabled={isLoading}>
+                    {isLoading ? 'Connexion...' : 'Se connecter'}
+                  </Button>
+                </div>
+              </div>
             </form>
           </CardContent>
           <CardFooter className="flex flex-col space-y-3">
