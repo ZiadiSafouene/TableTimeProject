@@ -1,10 +1,9 @@
-
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { toast } from '@/components/ui/use-toast';
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  userType: 'student_teacher' | 'admin' | null;
+  userType: 'etudiant' | 'enseignant' | 'admin' | null;
   login: (email: string, password: string, userType: string, adminCode?: string) => Promise<boolean>;
   logout: () => void;
   register: (email: string, password: string, name: string, userType: string, adminCode?: string, idNumber?: string) => Promise<boolean>;
@@ -15,7 +14,7 @@ interface AuthContextType {
 interface User {
   email: string;
   name: string;
-  userType: 'student_teacher' | 'admin';
+  userType: 'etudiant' | 'enseignant' | 'admin';
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,8 +35,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
     localStorage.getItem('isAuthenticated') === 'true'
   );
-  const [userType, setUserType] = useState<'student_teacher' | 'admin' | null>(
-    localStorage.getItem('userType') as 'student_teacher' | 'admin' | null
+  const [userType, setUserType] = useState<'etudiant' | 'enseignant' | 'admin' | null>(
+    localStorage.getItem('userType') as 'etudiant' | 'enseignant' | 'admin' | null
   );
 
   const isAdmin = () => {
@@ -57,14 +56,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     // Simulation d'une vérification d'authentification
     if (email === 'test@gmail.com' && password === 'test') {
-      const userTypeValue = userType === 'admin' ? 'admin' : 'student_teacher';
       setIsAuthenticated(true);
-      setUserType(userTypeValue);
+      setUserType(userType as 'etudiant' | 'enseignant' | 'admin');
       localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('userType', userTypeValue);
+      localStorage.setItem('userType', userType);
       toast({
         title: 'Connexion réussie',
-        description: `Bienvenue sur la plateforme d'emploi du temps (${userType === 'admin' ? 'Administrateur' : 'Étudiant/Enseignant'})`,
+        description: `Bienvenue sur la plateforme d'emploi du temps (${userType})`,
       });
       return true;
     }

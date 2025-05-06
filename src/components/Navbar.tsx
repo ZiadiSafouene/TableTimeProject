@@ -2,11 +2,21 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { Home, Info, Contact, LogOut } from 'lucide-react';
+import { useState } from "react";
+import { Home, Info, Contact, LogOut, Bell } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
+// Sample make-up class requests data
+const makeupRequests = [
+  { id: 1, teacher: "Prof. Martin", class: "Informatique 3", date: "2024-05-10", time: "14:00-16:00", reason: "Maladie" },
+  { id: 2, teacher: "Prof. Dubois", class: "Mathématiques 2", date: "2024-05-12", time: "10:00-12:00", reason: "Absence administrative" },
+  { id: 3, teacher: "Prof. Bernard", class: "Physique 1", date: "2024-05-15", time: "08:00-10:00", reason: "Formation" },
+];
 
 const Navbar = () => {
-  const { logout } = useAuth();
+  const { logout, userType } = useAuth();
   const navigate = useNavigate();
+  const [notifications, setNotifications] = useState(makeupRequests);
 
   const handleLogout = () => {
     logout();
@@ -18,6 +28,16 @@ const Navbar = () => {
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
     }
+  };
+
+  const handleApprove = (id: number) => {
+    setNotifications(notifications.filter(req => req.id !== id));
+    // Here you would also update the backend
+  };
+
+  const handleDeny = (id: number) => {
+    setNotifications(notifications.filter(req => req.id !== id));
+    // Here you would also update the backend
   };
 
   return (
@@ -54,7 +74,64 @@ const Navbar = () => {
             Contact
           </Button>
         </nav>
-        <div className="ml-auto flex items-center">
+        <div className="ml-auto flex items-center space-x-3">
+          {userType === 'admin' && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="relative">
+                  <Bell className="h-5 w-5" />
+                  {notifications.length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {notifications.length}
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-96 p-0">
+                <div className="p-4 border-b">
+                  <h3 className="font-medium">Demandes de rattrapage</h3>
+                </div>
+                <div className="max-h-96 overflow-auto">
+                  {notifications.length > 0 ? (
+                    notifications.map((req) => (
+                      <div key={req.id} className="p-4 border-b">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <p className="font-semibold">{req.teacher}</p>
+                            <p className="text-sm text-gray-500">{req.class}</p>
+                          </div>
+                          <div className="text-xs text-gray-500">{req.date}</div>
+                        </div>
+                        <div className="mb-2">
+                          <p className="text-sm">Horaire: {req.time}</p>
+                          <p className="text-sm">Motif: {req.reason}</p>
+                        </div>
+                        <div className="flex justify-end space-x-2 mt-2">
+                          <Button 
+                            size="sm" 
+                            variant="destructive" 
+                            onClick={() => handleDeny(req.id)}
+                          >
+                            Refuser
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleApprove(req.id)}
+                          >
+                            Approuver
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-gray-500">
+                      Pas de demandes en attente
+                    </div>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
           <Button 
             onClick={handleLogout} 
             variant="outline" 

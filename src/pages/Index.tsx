@@ -11,7 +11,7 @@ import AboutSection from '@/components/AboutSection';
 import ContactSection from '@/components/ContactSection';
 
 const Index = () => {
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated, userType } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,8 +23,6 @@ const Index = () => {
   if (!isAuthenticated) {
     return null;
   }
-
-  const userIsAdmin = isAdmin();
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -38,14 +36,16 @@ const Index = () => {
                 Gestion des emplois du temps
               </h2>
               <p className="text-lg text-gray-700 max-w-3xl mx-auto">
-                {userIsAdmin 
+                {userType === 'admin' 
                   ? "En tant qu'administrateur, vous pouvez importer et modifier les emplois du temps pour toutes les classes et enseignants."
-                  : "Consultez les emplois du temps par classe ou par enseignant."
+                  : userType === 'enseignant'
+                    ? "En tant qu'enseignant, vous pouvez consulter vos emplois du temps et faire des demandes de rattrapage."
+                    : "En tant qu'étudiant, vous pouvez consulter les emplois du temps de vos cours."
                 }
               </p>
             </div>
             
-            {userIsAdmin ? (
+            {userType === 'admin' ? (
               <AdminTimeTableEditor />
             ) : (
               <TimeTableViewer timeTableData={[]} />

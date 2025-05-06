@@ -12,7 +12,7 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [userType, setUserType] = useState<'student_teacher' | 'admin'>('student_teacher');
+  const [userType, setUserType] = useState<'etudiant' | 'enseignant' | 'admin'>('etudiant');
   const [adminCode, setAdminCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
@@ -109,17 +109,28 @@ const Login = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="userType">Type de compte</Label>
-                  <div className="flex gap-4">
+                  <div className="flex flex-wrap gap-4">
                     <div className="flex items-center">
                       <input
                         type="radio"
-                        id="student_teacher"
+                        id="etudiant"
                         name="userType"
                         className="mr-2"
-                        checked={userType === "student_teacher"}
-                        onChange={() => setUserType("student_teacher")}
+                        checked={userType === "etudiant"}
+                        onChange={() => setUserType("etudiant")}
                       />
-                      <Label htmlFor="student_teacher" className="cursor-pointer">Étudiant/Enseignant</Label>
+                      <Label htmlFor="etudiant" className="cursor-pointer">Étudiant</Label>
+                    </div>
+                    <div className="flex items-center">
+                      <input
+                        type="radio"
+                        id="enseignant"
+                        name="userType"
+                        className="mr-2"
+                        checked={userType === "enseignant"}
+                        onChange={() => setUserType("enseignant")}
+                      />
+                      <Label htmlFor="enseignant" className="cursor-pointer">Enseignant</Label>
                     </div>
                     <div className="flex items-center">
                       <input
@@ -135,7 +146,7 @@ const Login = () => {
                   </div>
                 </div>
 
-                <div className="pt-4">
+                <div className="pt-6">
                   <Button type="submit" className="w-full bg-blue-700 hover:bg-blue-800" disabled={isLoading}>
                     {isLoading ? 'Connexion...' : 'Se connecter'}
                   </Button>
