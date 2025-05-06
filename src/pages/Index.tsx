@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
@@ -13,12 +13,26 @@ import ContactSection from '@/components/ContactSection';
 const Index = () => {
   const { isAuthenticated, userType } = useAuth();
   const navigate = useNavigate();
+  const adminTimeTableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login');
     }
   }, [isAuthenticated, navigate]);
+
+  // Function to handle approval of makeup classes
+  const handleApproveMakeupClass = (requestId: number) => {
+    if (window.approveMakeupClass) {
+      window.approveMakeupClass(requestId);
+    }
+  };
+
+  // Export the handler to be accessible
+  useEffect(() => {
+    // Make the approval handler available globally
+    window.handleApproveMakeupClass = handleApproveMakeupClass;
+  }, []);
 
   if (!isAuthenticated) {
     return null;
@@ -29,7 +43,7 @@ const Index = () => {
       <Navbar />
       <main className="flex-grow">
         <HeroSection />
-        <section id="timetable" className="py-16 bg-gray-50">
+        <section id="timetable" className="py-16 bg-gray-50" ref={adminTimeTableRef}>
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-blue-900 mb-4">
@@ -59,5 +73,12 @@ const Index = () => {
     </div>
   );
 };
+
+// Declare global method for handling approvals
+declare global {
+  interface Window {
+    handleApproveMakeupClass?: (requestId: number) => void;
+  }
+}
 
 export default Index;

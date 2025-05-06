@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,10 +11,92 @@ import { TimeTableEntry } from '@/utils/excelParser';
 const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
 const hours = ["08:00", "09:30", "11:00", "12:30", "14:00", "15:30", "17:00"];
 
+// For demonstration purposes, define a type for makeup requests
+export interface MakeupRequest {
+  id: number;
+  teacher: string;
+  class: string;
+  date: string;
+  time: string;
+  reason: string;
+  location?: string;
+  approved?: boolean;
+}
+
+// Global state to store makeup requests (in a real app, this would be in a context or redux)
+export const makeupRequests: MakeupRequest[] = [
+  { id: 1, teacher: "Prof. Martin", class: "Informatique 3", date: "2024-05-10", time: "14:00-16:00", reason: "Maladie" },
+  { id: 2, teacher: "Prof. Dubois", class: "Mathématiques 2", date: "2024-05-12", time: "10:00-12:00", reason: "Absence administrative" },
+  { id: 3, teacher: "Prof. Bernard", class: "Physique 1", date: "2024-05-15", time: "08:00-10:00", reason: "Formation" },
+];
+
+// Function to convert date and time to day and time slot
+const convertDateToDay = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  const dayNames = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+  return dayNames[date.getDay()];
+};
+
+const convertTimeToSlot = (timeStr: string): string => {
+  // Format should be "HH:MM-HH:MM"
+  const startTime = timeStr.split('-')[0].trim();
+  const hour = parseInt(startTime.split(':')[0]);
+  
+  // Map hour to time slot
+  if (hour < 9) return "08:00";
+  else if (hour < 10) return "09:30";
+  else if (hour < 12) return "11:00";
+  else if (hour < 14) return "12:30";
+  else if (hour < 15) return "14:00";
+  else if (hour < 17) return "15:30";
+  else return "17:00";
+};
+
 const AdminTimeTableEditor = () => {
   const [viewMode, setViewMode] = useState<'classes' | 'teachers'>('classes');
   const [timeTableData, setTimeTableData] = useState<TimeTableEntry[]>([]);
   const [showUploader, setShowUploader] = useState(true);
+  const [approvedMakeups, setApprovedMakeups] = useState<MakeupRequest[]>([]);
+  
+  useEffect(() => {
+    // Check for approved makeup classes and add them to the timetable
+    approvedMakeups.forEach(makeup => {
+      const day = convertDateToDay(makeup.date);
+      const time = convertTimeToSlot(makeup.time);
+      
+      // Create a new timetable entry for the approved makeup
+      const newEntry: TimeTableEntry = {
+        day,
+        time,
+        course: makeup.class + " (Rattrapage)",
+        teacher: makeup.teacher,
+        location: makeup.location || "À déterminer",
+        class: makeup.class
+      };
+      
+      // Check if this entry already exists
+      const existingEntryIndex = timeTableData.findIndex(
+        entry => entry.day === day && entry.time === time && entry.course === newEntry.course
+      );
+      
+      // If it doesn't exist, add it to the timetable
+      if (existingEntryIndex === -1) {
+        setTimeTableData(prevData => [...prevData, newEntry]);
+      }
+    });
+  }, [approvedMakeups]);
+
+  // Method to be called from Navbar component when approval happens
+  window.approveMakeupClass = (requestId: number) => {
+    const request = makeupRequests.find(req => req.id === requestId);
+    if (request) {
+      setApprovedMakeups(prev => [...prev, {...request, approved: true}]);
+      toast({
+        title: "Rattrapage approuvé",
+        description: `Le rattrapage de ${request.teacher} a été ajouté à l'emploi du temps.`,
+      });
+    }
+  };
   
   const handleDataLoaded = (data: TimeTableEntry[]) => {
     setTimeTableData(data);
@@ -50,7 +131,6 @@ const AdminTimeTableEditor = () => {
     // Ici on pourrait implémenter la sauvegarde dans une base de données
     // ou l'export vers un fichier Excel
     
-    // Pour l'exemple, on affiche simplement un toast
     toast({
       title: "Modifications sauvegardées",
       description: `${timeTableData.length} entrées d'emploi du temps ont été sauvegardées.`
@@ -167,5 +247,12 @@ const AdminTimeTableEditor = () => {
     </div>
   );
 };
+
+// Add global type declaration for the approval function
+declare global {
+  interface Window {
+    approveMakeupClass: (requestId: number) => void;
+  }
+}
 
 export default AdminTimeTableEditor;

@@ -3,20 +3,17 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { Home, Info, Contact, LogOut, Bell } from 'lucide-react';
+import { Home, Info, Contact, LogOut, Bell, Plus } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-
-// Sample make-up class requests data
-const makeupRequests = [
-  { id: 1, teacher: "Prof. Martin", class: "Informatique 3", date: "2024-05-10", time: "14:00-16:00", reason: "Maladie" },
-  { id: 2, teacher: "Prof. Dubois", class: "Mathématiques 2", date: "2024-05-12", time: "10:00-12:00", reason: "Absence administrative" },
-  { id: 3, teacher: "Prof. Bernard", class: "Physique 1", date: "2024-05-15", time: "08:00-10:00", reason: "Formation" },
-];
+import MakeupClassForm from "./MakeupClassForm";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { MakeupRequest, makeupRequests as initialMakeupRequests } from "./AdminTimeTableEditor";
 
 const Navbar = () => {
   const { logout, userType } = useAuth();
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState(makeupRequests);
+  const [notifications, setNotifications] = useState<MakeupRequest[]>(initialMakeupRequests);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -31,8 +28,13 @@ const Navbar = () => {
   };
 
   const handleApprove = (id: number) => {
+    // Call the global approve function from Index.tsx
+    if (window.handleApproveMakeupClass) {
+      window.handleApproveMakeupClass(id);
+    }
+    
+    // Remove notification
     setNotifications(notifications.filter(req => req.id !== id));
-    // Here you would also update the backend
   };
 
   const handleDeny = (id: number) => {
@@ -51,7 +53,7 @@ const Navbar = () => {
         </div>
         <nav className="hidden mx-6 items-center space-x-4 md:flex lg:space-x-6 flex-grow">
           <Button 
-            onClick={() => scrollToSection('upload')} 
+            onClick={() => scrollToSection('timetable')} 
             variant="ghost" 
             className="text-gray-700 hover:text-blue-700"
           >
@@ -75,6 +77,19 @@ const Navbar = () => {
           </Button>
         </nav>
         <div className="ml-auto flex items-center space-x-3">
+          {userType === 'enseignant' && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="relative">
+                  <Plus className="h-5 w-5" />
+                  <span className="sr-only">Demander un rattrapage</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <MakeupClassForm onSubmit={() => setIsDialogOpen(false)} />
+              </DialogContent>
+            </Dialog>
+          )}
           {userType === 'admin' && (
             <Popover>
               <PopoverTrigger asChild>
