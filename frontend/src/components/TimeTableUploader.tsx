@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,7 +28,6 @@ const TimeTableUploader = ({ onDataLoaded }: TimeTableUploaderProps) => {
       return;
     }
 
-    // Vérifier l'extension du fichier
     const fileExtension = file.name.split('.').pop()?.toLowerCase();
     if (fileExtension !== 'xlsx' && fileExtension !== 'xls') {
       toast({
@@ -43,9 +41,27 @@ const TimeTableUploader = ({ onDataLoaded }: TimeTableUploaderProps) => {
     setIsLoading(true);
 
     try {
-      const data = await parseExcelFile(file);
-      
-      if (data.length === 0) {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('http://localhost:8000/api/upload-schedule/', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Échec du téléchargement du fichier.");
+      }
+
+      toast({
+        title: "Fichier importé avec succès",
+        description: "Le fichier a été traité par le serveur.",
+      });
+
+      const localData = await parseExcelFile(file);
+      if (localData.length === 0) {
         toast({
           title: "Fichier vide",
           description: "Le fichier ne contient aucune donnée d'emploi du temps.",
@@ -53,16 +69,11 @@ const TimeTableUploader = ({ onDataLoaded }: TimeTableUploaderProps) => {
         });
         return;
       }
-      
-      toast({
-        title: "Fichier importé avec succès",
-        description: `${data.length} entrées d'emploi du temps ont été chargées.`
-      });
 
-      // Appeler le callback si fourni
       if (onDataLoaded) {
-        onDataLoaded(data);
+        onDataLoaded(localData);
       }
+
     } catch (error) {
       toast({
         title: "Erreur lors de l'importation",
@@ -85,7 +96,7 @@ const TimeTableUploader = ({ onDataLoaded }: TimeTableUploaderProps) => {
               Le fichier doit contenir les colonnes: Jour, Heure, Cours, Enseignant, Salle et Classe.
             </p>
           </div>
-          
+
           <div className="flex flex-col md:flex-row gap-4 items-center">
             <div className="flex-grow w-full">
               <div className="flex items-center justify-center w-full">
@@ -120,7 +131,7 @@ const TimeTableUploader = ({ onDataLoaded }: TimeTableUploaderProps) => {
               </Button>
             </div>
           </div>
-          
+
           {file && (
             <div className="text-sm text-gray-600">
               Fichier sélectionné: <span className="font-medium">{file.name}</span>

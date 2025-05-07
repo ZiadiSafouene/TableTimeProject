@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}Teacher Dashboard - {{ teacher_name }}{% endblock %}
+
+{% block content %}
+    <h1>Schedule for {{ teacher_name }}</h1>
+    
+    {% if schedule %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Day</th>
+                    <th>Time</th>
+                    <th>Room</th>
+                    <th>Class</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for session in schedule %}
+                    <tr>
+                        <td>{{ session.day }}</td>
+                        <td>{{ session.time }}</td>
+                        <td>{{ session.room }}</td>
+                        <td>{{ session.class }}</td>
+                        <td>{{ session.details }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No schedule found for this teacher.</p>
+    {% endif %}
+    
+    <h2>Request New Session</h2>
+    <div class="form-group">
+        <label for="day">Day:</label>
+        <select id="day">
+            <option value="Lundi">Lundi</option>
+            <option value="Mardi">Mardi</option>
+            <option value="Mercredi">Mercredi</option>
+            <option value="Jeudi">Jeudi</option>
+            <option value="Vendredi">Vendredi</option>
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="time">Time Slot:</label>
+        <select id="time">
+            <option value="08:30 - 10:00">08:30 - 10:00</option>
+            <option value="10:15 - 11:45">10:15 - 11:45</option>
+            <option value="12:00 - 13:30">12:00 - 13:30</option>
+            <option value="13:00 - 14:30">13:00 - 14:30</option>
+            <option value="14:45 - 16:15">14:45 - 16:15</option>
+            <option value="16:30 - 18:00">16:30 - 18:00</option>
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="room">Room:</label>
+        <input type="text" id="room" placeholder="Room (e.g., C-01)">
+    </div>
+    
+    <div class="form-group">
+        <label for="class">Class:</label>
+        <input type="text" id="class" placeholder="Class">
+    </div>
+    
+    <div class="form-group">
+        <label for="details">Details:</label>
+        <textarea id="details" placeholder="Additional details"></textarea>
+    </div>
+    
+    <button id="request-btn">Submit Request</button>
+    <div id="request-message" style="margin-top: 10px;"></div>
+    
+    <hr>
+    <button onclick="window.location.href = '/'">Back to Login</button>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('request-btn').addEventListener('click', function() {
+        var day = document.getElementById('day').value;
+        var time = document.getElementById('time').value;
+        var room = document.getElementById('room').value;
+        var classInfo = document.getElementById('class').value;
+        var details = document.getElementById('details').value;
+        var messageElement = document.getElementById('request-message');
+        
+        // Validate inputs
+        if (!room || !classInfo) {
+            messageElement.textContent = 'Please fill in all required fields';
+            messageElement.style.color = 'red';
+            return;
+        }
+        
+        // Prepare session details
+        var sessionDetails = {
+            day: day,
+            time: time,
+            room: room,
+            class: classInfo,
+            details: details,
+            teacher: '{{ teacher_name }}'
+        };
+        
+        // Send request
+        fetch('/add_session_request/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                teacher_name: '{{ teacher_name }}',
+                session_details: sessionDetails
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                messageElement.textContent = 'Request submitted successfully';
+                messageElement.style.color = 'green';
+                
+                // Clear inputs
+                document.getElementById('room').value = '';
+                document.getElementById('class').value = '';
+                document.getElementById('details').value = '';
+            } else {
+                throw new Error(data.error || 'Request failed');
+            }
+        })
+        .catch(error => {
+            messageElement.textContent = error.message;
+            messageElement.style.color = 'red';
+        });
+    });
+    
+    // Function to get CSRF token from cookies
+    function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}

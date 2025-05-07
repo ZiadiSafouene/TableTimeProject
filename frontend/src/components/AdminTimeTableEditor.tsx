@@ -6,12 +6,30 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
 import TimeTableUploader from './TimeTableUploader';
-import { TimeTableEntry } from '@/utils/excelParser';
 
 const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
 const hours = ["08:00", "09:30", "11:00", "12:30", "14:00", "15:30", "17:00"];
 
-// For demonstration purposes, define a type for makeup requests
+export interface TimeTableEntry {
+  day: string;
+  time: string;
+  course: string;
+  teacher: string;
+  location: string;
+  class: string;
+}
+
+interface IncomingTimeTableData {
+  [day: string]: Array<{
+    day: string;
+    time: string;
+    room: string;
+    class: string;
+    teacher: any;
+    lecture: any;
+  }>;
+}
+
 export interface MakeupRequest {
   id: number;
   teacher: string;
@@ -23,33 +41,51 @@ export interface MakeupRequest {
   approved?: boolean;
 }
 
-// Global state to store makeup requests (in a real app, this would be in a context or redux)
-export const makeupRequests: MakeupRequest[] = [
-  { id: 1, teacher: "Prof. Martin", class: "Informatique 3", date: "2024-05-10", time: "14:00-16:00", reason: "Maladie" },
-  { id: 2, teacher: "Prof. Dubois", class: "Mathématiques 2", date: "2024-05-12", time: "10:00-12:00", reason: "Absence administrative" },
-  { id: 3, teacher: "Prof. Bernard", class: "Physique 1", date: "2024-05-15", time: "08:00-10:00", reason: "Formation" },
-];
-
-// Function to convert date and time to day and time slot
-const convertDateToDay = (dateStr: string): string => {
-  const date = new Date(dateStr);
-  const dayNames = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
-  return dayNames[date.getDay()];
+const convertTimeToSlot = (timeStr: string): string => {
+  const startTime = timeStr.includes('-') ? 
+    timeStr.split('-')[0].trim() : 
+    timeStr;
+  
+  const hour = parseInt(startTime.split(':')[0]);
+  const minute = parseInt(startTime.split(':')[1] || '0');
+  
+  if (hour < 8 || (hour === 8 && minute < 30)) return "08:00";
+  else if (hour < 9 || (hour === 9 && minute < 30)) return "09:30";
+  else if (hour < 11 || (hour === 11 && minute < 30)) return "11:00";
+  else if (hour < 12 || (hour === 12 && minute < 30)) return "12:30";
+  else if (hour < 14 || (hour === 14 && minute < 30)) return "14:00";
+  else if (hour < 15 || (hour === 15 && minute < 30)) return "15:30";
+  else return "17:00";
 };
 
-const convertTimeToSlot = (timeStr: string): string => {
-  // Format should be "HH:MM-HH:MM"
-  const startTime = timeStr.split('-')[0].trim();
-  const hour = parseInt(startTime.split(':')[0]);
-  
-  // Map hour to time slot
-  if (hour < 9) return "08:00";
-  else if (hour < 10) return "09:30";
-  else if (hour < 12) return "11:00";
-  else if (hour < 14) return "12:30";
-  else if (hour < 15) return "14:00";
-  else if (hour < 17) return "15:30";
-  else return "17:00";
+const transformIncomingData = (data: IncomingTimeTableData): TimeTableEntry[] => {
+  const result: TimeTableEntry[] = [];
+  const dayMap: Record<string, string> = {
+    "monday": "Lundi",
+    "tuesday": "Mardi",
+    "wednesday": "Mercredi",
+    "thursday": "Jeudi",
+    "friday": "Vendredi",
+    "saturday": "Samedi",
+    "sunday": "Dimanche"
+  };
+
+  Object.entries(data).forEach(([day, entries]) => {
+    entries.forEach(entry => {
+      const timeSlot = convertTimeToSlot(entry.time);
+      
+      result.push({
+        day: dayMap[day.toLowerCase()] || day,
+        time: timeSlot,
+        course: entry.lecture || "Unknown Course",
+        teacher: entry.teacher || "Unknown Teacher",
+        location: entry.room,
+        class: entry.class
+      });
+    });
+  });
+
+  return result;
 };
 
 const AdminTimeTableEditor = () => {
@@ -57,49 +93,74 @@ const AdminTimeTableEditor = () => {
   const [timeTableData, setTimeTableData] = useState<TimeTableEntry[]>([]);
   const [showUploader, setShowUploader] = useState(true);
   const [approvedMakeups, setApprovedMakeups] = useState<MakeupRequest[]>([]);
-  
+  const [selectedClass, setSelectedClass] = useState<string>("");
+  const [selectedTeacher, setSelectedTeacher] = useState<string>("");
   useEffect(() => {
-    // Check for approved makeup classes and add them to the timetable
-    approvedMakeups.forEach(makeup => {
-      const day = convertDateToDay(makeup.date);
-      const time = convertTimeToSlot(makeup.time);
-      
-      // Create a new timetable entry for the approved makeup
-      const newEntry: TimeTableEntry = {
-        day,
-        time,
-        course: makeup.class + " (Rattrapage)",
-        teacher: makeup.teacher,
-        location: makeup.location || "À déterminer",
-        class: makeup.class
-      };
-      
-      // Check if this entry already exists
-      const existingEntryIndex = timeTableData.findIndex(
-        entry => entry.day === day && entry.time === time && entry.course === newEntry.course
-      );
-      
-      // If it doesn't exist, add it to the timetable
-      if (existingEntryIndex === -1) {
-        setTimeTableData(prevData => [...prevData, newEntry]);
-      }
-    });
-  }, [approvedMakeups]);
+    // Example initialization with sample data
+    const initialData: IncomingTimeTableData = {
+      "monday": [],
+      "tuesday": [{
+        "day": "tuesday", 
+        "time": "16:30 - 18:00", 
+        "room": "A-KANOUN", 
+        "class": "A-KANOUN", 
+        "teacher": NaN, 
+        "lecture": NaN
+      }],
+      "wednesday": [{
+        "day": "wednesday", 
+        "time": "14:45 - 16:15", 
+        "room": "A-KANOUN", 
+        "class": "A-KANOUN", 
+        "teacher": NaN, 
+        "lecture": NaN
+      }],
+      "thursday": [{
+        "day": "thursday", 
+        "time": "13:00 - 14:30", 
+        "room": "A-KANOUN", 
+        "class": "A-KANOUN", 
+        "teacher": NaN, 
+        "lecture": NaN
+      }],
+      "friday": [{
+        "day": "friday", 
+        "time": "12:00 - 13:30", 
+        "room": "A-KANOUN", 
+        "class": "A-KANOUN", 
+        "teacher": NaN, 
+        "lecture": NaN
+      }],
+      "saturday": [{
+        "day": "saturday", 
+        "time": "10:15 - 11:45", 
+        "room": "A-KANOUN", 
+        "class": "A-KANOUN", 
+        "teacher": NaN, 
+        "lecture": NaN
+      }],
+      "sunday": [{
+        "day": "sunday", 
+        "time": "08:30 - 10:00", 
+        "room": "A-KANOUN", 
+        "class": "A-KANOUN", 
+        "teacher": NaN, 
+        "lecture": NaN
+      }]
+    };
+    
+    setTimeTableData(transformIncomingData(initialData));
+    setShowUploader(false);
+  }, []);
 
-  // Method to be called from Navbar component when approval happens
-  window.approveMakeupClass = (requestId: number) => {
-    const request = makeupRequests.find(req => req.id === requestId);
-    if (request) {
-      setApprovedMakeups(prev => [...prev, {...request, approved: true}]);
-      toast({
-        title: "Rattrapage approuvé",
-        description: `Le rattrapage de ${request.teacher} a été ajouté à l'emploi du temps.`,
-      });
-    }
-  };
-  
   const handleDataLoaded = (data: TimeTableEntry[]) => {
     setTimeTableData(data);
+    setShowUploader(false);
+  };
+  
+  const handleIncomingData = (rawData: IncomingTimeTableData) => {
+    const transformedData = transformIncomingData(rawData);
+    setTimeTableData(transformedData);
     setShowUploader(false);
   };
   
@@ -128,15 +189,28 @@ const AdminTimeTableEditor = () => {
   
   const handleSaveChanges = () => {
     console.log('Saving changes to timetable:', timeTableData);
-    // Ici on pourrait implémenter la sauvegarde dans une base de données
-    // ou l'export vers un fichier Excel
-    
     toast({
       title: "Modifications sauvegardées",
       description: `${timeTableData.length} entrées d'emploi du temps ont été sauvegardées.`
     });
   };
-  
+  const fetchTimeTableData = async (type: 'class' | 'teacher', name: string) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/${type}-dashboard/${name}/`);
+      if (!response.ok) throw new Error("Failed to fetch data");
+      const data = await response.json();
+      handleIncomingData(data); // Transforms and updates state
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to load timetable", variant: "destructive" });
+    }
+  };
+  useEffect(() => {
+    if (viewMode === 'classes' && selectedClass) {
+      fetchTimeTableData('class', selectedClass);
+    } else if (viewMode === 'teachers' && selectedTeacher) {
+      fetchTimeTableData('teacher', selectedTeacher);
+    }
+  }, [viewMode, selectedClass, selectedTeacher]);
   return (
     <div className="space-y-6">
       {showUploader ? (
@@ -147,15 +221,27 @@ const AdminTimeTableEditor = () => {
             <div className="flex items-center gap-2">
               <span>Afficher par:</span>
               <Select
-                value={viewMode}
-                onValueChange={(value) => setViewMode(value as 'classes' | 'teachers')}
+                value={viewMode === 'classes' ? selectedClass : selectedTeacher}
+                onValueChange={(value) => {
+                  if (viewMode === 'classes') setSelectedClass(value);
+                  else setSelectedTeacher(value);
+                }}
               >
                 <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Choisir une vue" />
+                  <SelectValue placeholder={`Choisir ${viewMode === 'classes' ? 'une classe' : 'un enseignant'}`} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="classes">Classes</SelectItem>
-                  <SelectItem value="teachers">Enseignants</SelectItem>
+                  {viewMode === 'classes' ? (
+                    <>
+                      <SelectItem value="Math101">Math 101</SelectItem>
+                      <SelectItem value="Physics201">Physics 201</SelectItem>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value="John Doe">John Doe</SelectItem>
+                      <SelectItem value="Jane Smith">Jane Smith</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -201,14 +287,14 @@ const AdminTimeTableEditor = () => {
                               <div className="bg-blue-50 p-2 rounded-md space-y-2">
                                 <Input 
                                   placeholder="Matière"
-                                  value={entry.course}
+                                  value={entry.course || ''}
                                   onChange={(e) => handleEntryChange(entryIndex, 'course', e.target.value)}
                                   className="text-sm"
                                 />
                                 <div className="grid grid-cols-2 gap-1">
                                   <Input 
                                     placeholder={viewMode === 'classes' ? "Enseignant" : "Classe"}
-                                    value={viewMode === 'classes' ? entry.teacher : entry.class}
+                                    value={viewMode === 'classes' ? (entry.teacher || '') : (entry.class || '')}
                                     onChange={(e) => handleEntryChange(
                                       entryIndex, 
                                       viewMode === 'classes' ? 'teacher' : 'class', 
@@ -218,7 +304,7 @@ const AdminTimeTableEditor = () => {
                                   />
                                   <Input 
                                     placeholder="Salle"
-                                    value={entry.location}
+                                    value={entry.location || ''}
                                     onChange={(e) => handleEntryChange(entryIndex, 'location', e.target.value)}
                                     className="text-sm"
                                   />
@@ -247,12 +333,11 @@ const AdminTimeTableEditor = () => {
     </div>
   );
 };
-
-// Add global type declaration for the approval function
-declare global {
-  interface Window {
-    approveMakeupClass: (requestId: number) => void;
-  }
-}
+// At the bottom of AdminTimeTableEditor.tsx (before the last export statement)
+export const makeupRequests: MakeupRequest[] = [
+  { id: 1, teacher: "Prof. Martin", class: "Informatique 3", date: "2024-05-10", time: "14:00-16:00", reason: "Maladie" },
+  { id: 2, teacher: "Prof. Dubois", class: "Mathématiques 2", date: "2024-05-12", time: "10:00-12:00", reason: "Absence administrative" },
+  { id: 3, teacher: "Prof. Bernard", class: "Physique 1", date: "2024-05-15", time: "08:00-10:00", reason: "Formation" },
+];
 
 export default AdminTimeTableEditor;

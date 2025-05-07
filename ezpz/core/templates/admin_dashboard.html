@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+    <h1>Administrator Dashboard</h1>
+    
+    <h2>View Schedules</h2>
+    <div class="form-group">
+        <label for="schedule-type">Select Type:</label>
+        <select id="schedule-type">
+            <option value="class">Class</option>
+            <option value="teacher">Teacher</option>
+        </select>
+    </div>

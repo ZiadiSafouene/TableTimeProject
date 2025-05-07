@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Dashboard - {{ class_name }}{% endblock %}
+
+{% block content %}
+    <h1>Class Schedule for {{ class_name }}</h1>
+    
+    {% if schedule %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Day</th>
+                    <th>Time</th>
+                    <th>Room</th>
+                    <th>Teacher</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for session in schedule %}
+                    <tr>
+                        <td>{{ session.day }}</td>
+                        <td>{{ session.time }}</td>
+                        <td>{{ session.room }}</td>
+                        <td>{{ session.teacher }}</td>
+                        <td>{{ session.details }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No schedule found for this class.</p>
+    {% endif %}
+    
+    <button onclick="window.location.href = '/'">Back to Login</button>
+{% endblock %}
